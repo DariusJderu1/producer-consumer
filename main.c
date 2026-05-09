@@ -7,6 +7,35 @@
 #define CONSUMERS 3 
 #define ITEMS_PER_PRODUCER 10
 
+void produce_item(int* fd, int i, int j)
+{
+    // Creez o valoare de pus in pipe
+    int item = (i + 1) * 100 + j;
+
+    // Scriu in pipe si salvez valorea returnata
+    ssize_t bytes_written = write(fd[1], &item, sizeof(int));
+
+    // Daca apare o eroare la scrierea in pipe opresc procesul si
+    // afisez un mesaj
+    if(bytes_written == -1) 
+    {
+        perror("A aparut o eroare la scrierea in pipe");
+        exit(1);
+    }
+    // Daca nu se reuseste sa se scrie un int intreg in pipe,
+    // opresc procesul si afisez un mesaj
+    if(bytes_written != sizeof(int)) 
+    {
+        printf("Un producer nu a reusit sa scrie un int intreg in pipe!\n");
+        exit(1);
+    }
+
+    // Afisez un mesaj pentru a urmari evolutia
+    printf("Producatorul %d a scris valoarea %d in pipe.\n", i+1, item);
+
+    // Incetinesc procesul pentru a observa mai bine scrierile si citirile
+    sleep(1);
+}
 void producers(int* fd)
 {
     // Fac un for, care apartine procesului principa,
@@ -37,34 +66,7 @@ void producers(int* fd)
 
             // Parcurg numarul valori pe care le va da producatorul
             for(int j = 0; j < ITEMS_PER_PRODUCER; ++j)
-            {
-                // Creez o valoare de pus in pipe
-                int item = (i + 1) * 100 + j;
-
-                // Scriu in pipe si salvez valorea returnata
-                ssize_t bytes_written = write(fd[1], &item, sizeof(int));
-
-                // Daca apare o eroare la scrierea in pipe opresc procesul si
-                // afisez un mesaj
-                if(bytes_written == -1) 
-                {
-                    perror("A aparut o eroare la scrierea in pipe");
-                    exit(1);
-                }
-                // Daca nu se reuseste sa se scrie un int intreg in pipe,
-                // opresc procesul si afisez un mesaj
-                if(bytes_written != sizeof(int)) 
-                {
-                    printf("Un producer nu a reusit sa scrie un int intreg in pipe!\n");
-                    exit(1);
-                }
-
-                // Afisez un mesaj pentru a urmari evolutia
-                printf("Producatorul %d a scris valoarea %d in pipe.\n", i+1, item);
-
-                // Incetinesc procesul pentru a observa mai bine scrierile si citirile
-                sleep(1);
-            }
+                produce_item(fd, i, j);
 
             // Inchid capatul de scriere, intrucat am terminat cu el
             close(fd[1]);
@@ -102,7 +104,7 @@ int main()
     producers(fd);
     
     // =====================================================
-    // III Crearea producatorilor
+    // III Crearea consumatorilor
     consumers(fd);
 
     return 0;
