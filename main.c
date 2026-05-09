@@ -8,6 +8,7 @@
 
 int main() 
 {
+    // =====================================================
     // I Crearea pipe-ului
 
     // Un array de 2 int-uri care are rolul salvarii file descriptorilor
@@ -20,11 +21,24 @@ int main()
     // Daca a esuat cererea, oprim programul si dam un mesaj de eroare
     if(pipe(fd) == -1) 
     {
-        printf("A avut loc o eroare la crearea pipe-ului!");
+        printf("A avut loc o eroare la crearea pipe-ului!\n");
         exit(1);
     }
 
-    
+    // =====================================================
+    // II Crearea proceselor 
+
+    // Cer kernel-ului sa cloneze procesul curent
+    // prin fork si salvez process id ul returnat
+    pid_t pid = fork();
+
+    // Daca apare o eroare in clonarea procesului parinte de la apelul fork,
+    // afisez un mesaj de eroare si termin programul.
+    if(pid == -1)
+    {
+        printf("A aparut o eroare la clonarea procesului parinte cu fork()!\n");
+        exit(1);
+    }
     
     return 0;
 }
