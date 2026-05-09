@@ -81,6 +81,78 @@ void producers(int* fd)
     }
 }
 
+void consume_item(ssize_t bytes_read, int i, int item)
+{
+    // Daca nu s a citit un int intreg opresc proces si afisez mesaj sugestiv
+    if(bytes_read != sizeof(int)) 
+    {
+        printf("Un consumer nu a reusit sa citeasca un int intreg din pipe!\n");
+        exit(1);
+    }
+
+    // Semnalez ca consumatorul a preluat valoarea din pipe
+    printf("Consumatorul %d a citit valoarea %d din pipe.\n", i+1, item);
+}
+void consumers(int* fd)
+{
+    // Fac un for, care apartine procesului principa,
+    // care sa parcurga numarul de producatori (care sunt procese) si ii creeaza
+    for(int i = 0; i < CONSUMERS; ++i) 
+    {
+        // Cer kernel-ului sa cloneze procesul curent
+        // prin fork si salvez process id ul returnat
+        pid_t pid = fork();
+
+        // Daca apare o eroare in clonarea procesului parinte de la apelul fork,
+        // afisez un mesaj de eroare si termin programul.
+        if(pid == -1)
+        {
+            perror("A aparut o eroare la clonarea procesului parinte cu fork()");
+            exit(1);
+        }
+
+        // Daca ne aflam in procesul copil
+        if(pid == 0) 
+        {
+            // Dupa clonarea procesului atat parintele cat si copilul
+            // au acces la pipe deoarece la fork copilul are acces la 
+            // tabela de file descriptori ai parintelui.
+
+            // Inchid capatul de scriere
+            close(fd[1]);
+
+            // Declarare item de citit
+            int item;
+            
+            // Declar variabila care salveaza return ul lui read
+            ssize_t bytes_read;
+
+            // Cat timp citirea din pipe este executata cu succes
+            while((bytes_read = read(fd[0], &item, sizeof(int))) > 0) 
+                consume_item(bytes_read, i, item);
+
+            // Daca a esuat vreun read sys call, opresc proces si afisez mesaj sugestiv
+            if(bytes_read == -1) 
+            {
+                perror("A aparut o eroare la citirea din pipe");
+                exit(1);
+            }
+
+            // Kernel-ul stie cand nu mai exista niciun proces care are deschis în tabela sa de descriptori capatul de scriere al pipe-ului,
+            // de asta read la un moment dat nu-si mai foloseste caracterul "blocant" si returneaza 0
+            // Semnalez ca un anumit consumator nu mai are cum si ce sa mai citeasca
+            printf("Consumatorul %d si-a terminat treaba! Nu mai exista date de consumat sau vreun proces producator cu capatul de scriere deschis.\n", i+1);
+
+            // Inchid capatul de citire, intrucat am terminat cu el
+            close(fd[0]);
+
+            // Opresc complet procesul, dupa ce a terminat de scris
+            // Fac asta ca sa nu mai continue fara motiv sa execute codul
+            exit(0);
+        }
+    } 
+}
+
 int main() 
 {
     // =====================================================
@@ -107,5 +179,12 @@ int main()
     // III Crearea consumatorilor
     consumers(fd);
 
+    close(fd[0]);
+    close(fd[1]);
+
     return 0;
 }
+
+// In implementarea cu procese si pipe-uri, buffer-ul partajat este 
+// buffer-ul intern al pipe-ului, administrat de kernel. 
+// Procesele nu il accesează direct, ci doar prin read() si write().
