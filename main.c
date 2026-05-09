@@ -2,35 +2,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
-
        
 #define PRODUCERS 2 
 #define CONSUMERS 3 
 #define ITEMS_PER_PRODUCER 10
 
-int main() 
+void producers(int* fd)
 {
-    // =====================================================
-    // I Crearea pipe-ului
-
-    // Un array de 2 int-uri care are rolul salvarii file descriptorilor
-    // aferenti citirii si scrierii in pipe
-    int fd[2];
-
-    // Cerem kernel-ului sa faca intern un pipe si sa puna in array-ul initial
-    // file descriptorii aferenti capetelor pipe ului, fd[0] - citire, fd[1] scriere
-    // Daca a esuat cererea, oprim programul si dam un mesaj de eroare
-    if(pipe(fd) == -1) 
-    {
-        perror("A avut loc o eroare la crearea pipe-ului");
-        exit(1);
-    }
-
-
-    // =====================================================
-    // II Crearea producatorilor
-    
-    // Fac un for care sa parcurga numarul de producatori (care sunt procese), ca sa ii creez
+    // Fac un for, care apartine procesului principa,
+    // care sa parcurga numarul de producatori (care sunt procese) si ii creeaza
     for(int i = 0; i < PRODUCERS; ++i) 
     {
         // Cer kernel-ului sa cloneze procesul curent
@@ -55,7 +35,7 @@ int main()
             // Inchid capatul de citire
             close(fd[0]);
 
-            // Parcurg numarul valori pe care le va da fiecare producator
+            // Parcurg numarul valori pe care le va da producatorul
             for(int j = 0; j < ITEMS_PER_PRODUCER; ++j)
             {
                 // Creez o valoare de pus in pipe
@@ -71,7 +51,6 @@ int main()
                     perror("A aparut o eroare la scrierea in pipe");
                     exit(1);
                 }
-
                 // Daca nu se reuseste sa se scrie un int intreg in pipe,
                 // opresc procesul si afisez un mesaj
                 if(bytes_written != sizeof(int)) 
@@ -94,9 +73,37 @@ int main()
             printf("Producatorul %d a terminat de scris!\n", i+1);
 
             // Opresc complet procesul, dupa ce a terminat de scris
+            // Fac asta ca sa nu mai continue fara motiv sa execute codul
             exit(0);
         }
     }
+}
+
+int main() 
+{
+    // =====================================================
+    // I Crearea pipe-ului
+
+    // Un array de 2 int-uri care are rolul salvarii file descriptorilor
+    // aferenti citirii si scrierii in pipe
+    int fd[2];
+
+    // Cerem kernel-ului sa faca intern un pipe si sa puna in array-ul initial
+    // file descriptorii aferenti capetelor pipe ului, fd[0] - citire, fd[1] scriere
+    // Daca a esuat cererea, oprim programul si dam un mesaj de eroare
+    if(pipe(fd) == -1) 
+    {
+        perror("A avut loc o eroare la crearea pipe-ului");
+        exit(1);
+    }
+
+    // =====================================================
+    // II Crearea producatorilor
+    producers(fd);
+    
+    // =====================================================
+    // III Crearea producatorilor
+    consumers(fd);
 
     return 0;
 }
