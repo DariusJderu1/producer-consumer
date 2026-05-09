@@ -21,6 +21,14 @@ Programul creeaza:
 
 Pipe-ul este folosit ca buffer comun intre producatori si consumatori. Buffer-ul nu este implementat manual in program, ci este buffer-ul intern al pipe-ului, administrat de kernel.
 
+## Diferenta fata de alte variante de rezolvare
+
+In varianta cu thread-uri, buffer-ul este de obicei implementat manual in program, de exemplu printr-un array circular. Pentru sincronizare sunt necesare mecanisme precum mutex-uri si variabile de conditie, astfel incat producatorii sa nu scrie intr-un buffer plin, consumatorii sa nu citeasca dintr-un buffer gol si mai multe thread-uri sa nu modifice simultan aceleasi date.
+
+In aceasta implementare, sincronizarea este realizata prin pipe. Daca pipe-ul este gol, `read()` blocheaza consumatorul pana apar date sau pana cand nu mai exista niciun capat de scriere deschis. Daca pipe-ul este plin, `write()` poate bloca producatorul pana se elibereaza spatiu. Astfel, cazurile de underflow si overflow sunt tratate de comportamentul blocant al pipe-ului.
+
+De asemenea, procesele nu acceseaza direct acelasi buffer din memoria programului. Ele comunica prin pipe, iar buffer-ul este administrat de kernel. Din acest motiv, nu este necesar un mutex pentru protejarea unui buffer manual.
+
 ## Functionare
 
 Consumatorii sunt creati primii si inchid capatul de scriere al pipe-ului. Ei citesc valori din pipe pana cand `read()` returneaza `0`, ceea ce inseamna ca nu mai exista date si niciun proces nu mai are deschis capatul de scriere.

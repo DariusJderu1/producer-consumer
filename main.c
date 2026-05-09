@@ -96,6 +96,9 @@ void consume_item(ssize_t bytes_read, int i, int item)
 
     // Semnalez ca consumatorul a preluat valoarea din pipe
     printf("Consumatorul %d a citit valoarea %d din pipe.\n", i+1, item);
+
+    // Incetinesc procesul pentru a observa mai bine scrierile si citirile
+    sleep(1);
 }
 // Creeaza procesele copil pentru consumatori
 void consumers(int* fd)
@@ -144,14 +147,14 @@ void consumers(int* fd)
             }
 
             // Kernel-ul stie cand nu mai exista niciun proces care are deschis in tabela sa de descriptori capatul de scriere al pipe-ului,
-            // de asta read la un moment dat nu-si mai foloseste caracterul "blocant" si returneaza 0
+            // de asta read la un moment dat nu-si mai foloseste caracterul "blocant" si nu mai asteapta date, returnand 0
             // Semnalez ca un anumit consumator nu mai are cum si ce sa mai citeasca
             printf("Consumatorul %d si-a terminat treaba! Nu mai exista date de consumat sau vreun proces producator cu capatul de scriere deschis.\n", i+1);
 
             // Inchid capatul de citire, intrucat am terminat cu el
             close(fd[0]);
 
-            // Opresc complet procesul, dupa ce a terminat de scris
+            // Opresc complet procesul, dupa ce a terminat de citit
             // Fac asta ca sa nu mai continue fara motiv sa execute codul
             exit(0);
         }
@@ -214,4 +217,4 @@ int main()
 
 // In implementarea cu procese si pipe-uri, buffer-ul partajat este 
 // buffer-ul intern al pipe-ului, administrat de kernel. 
-// Procesele nu il accesează direct, ci doar prin read() si write().
+// Procesele nu il acceseaza direct, ci doar prin read() si write().
