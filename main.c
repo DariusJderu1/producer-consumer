@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
        
 #define PRODUCERS 2 
 #define CONSUMERS 3 
@@ -96,7 +97,7 @@ void consume_item(ssize_t bytes_read, int i, int item)
 void consumers(int* fd)
 {
     // Fac un for, care apartine procesului principa,
-    // care sa parcurga numarul de producatori (care sunt procese) si ii creeaza
+    // care sa parcurga numarul de consumatori (care sunt procese) si ii creeaza
     for(int i = 0; i < CONSUMERS; ++i) 
     {
         // Cer kernel-ului sa cloneze procesul curent
@@ -138,7 +139,7 @@ void consumers(int* fd)
                 exit(1);
             }
 
-            // Kernel-ul stie cand nu mai exista niciun proces care are deschis în tabela sa de descriptori capatul de scriere al pipe-ului,
+            // Kernel-ul stie cand nu mai exista niciun proces care are deschis in tabela sa de descriptori capatul de scriere al pipe-ului,
             // de asta read la un moment dat nu-si mai foloseste caracterul "blocant" si returneaza 0
             // Semnalez ca un anumit consumator nu mai are cum si ce sa mai citeasca
             printf("Consumatorul %d si-a terminat treaba! Nu mai exista date de consumat sau vreun proces producator cu capatul de scriere deschis.\n", i+1);
@@ -179,6 +180,9 @@ int main()
     // III Crearea consumatorilor
     consumers(fd);
 
+    // Inchid cele doua capete ale pipe ului, mai ales pentru fd[1]
+    // este important, ca read sa recunoasca ca nu mai poate citi nimic
+    // pentru ca nimic nu mai poate fi adaugat
     close(fd[0]);
     close(fd[1]);
 
