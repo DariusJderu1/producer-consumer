@@ -1,8 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <stdio.h> // printf(), perror()
+#include <stdlib.h> // exit()
+#include <unistd.h> // pipe(), fork(), read(), write(), close(), sleep()
+#include <sys/types.h> // pid_t, ssize_t
+#include <sys/wait.h> // wait()
        
 #define PRODUCERS 2 
 #define CONSUMERS 3 
@@ -189,12 +189,12 @@ int main()
     }
 
     // =====================================================
-    // II Crearea producatorilor
-    producers(fd);
-    
-    // =====================================================
-    // III Crearea consumatorilor
+    // II Crearea consumatorilor
     consumers(fd);
+
+    // =====================================================
+    // III Crearea producatorilor
+    producers(fd);
 
     // =====================================================
     // IV Inchidere capete pipe
