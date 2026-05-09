@@ -8,6 +8,7 @@
 #define CONSUMERS 3 
 #define ITEMS_PER_PRODUCER 10
 
+// Produce item in pipe
 void produce_item(int* fd, int i, int j)
 {
     // Creez o valoare de pus in pipe
@@ -37,6 +38,7 @@ void produce_item(int* fd, int i, int j)
     // Incetinesc procesul pentru a observa mai bine scrierile si citirile
     sleep(1);
 }
+// Creaza procesele copil care sunt producatori
 void producers(int* fd)
 {
     // Fac un for, care apartine procesului principa,
@@ -82,6 +84,7 @@ void producers(int* fd)
     }
 }
 
+// Consuma item din pipe
 void consume_item(ssize_t bytes_read, int i, int item)
 {
     // Daca nu s a citit un int intreg opresc proces si afisez mesaj sugestiv
@@ -94,6 +97,7 @@ void consume_item(ssize_t bytes_read, int i, int item)
     // Semnalez ca consumatorul a preluat valoarea din pipe
     printf("Consumatorul %d a citit valoarea %d din pipe.\n", i+1, item);
 }
+// Creeaza procesele copil pentru consumatori
 void consumers(int* fd)
 {
     // Fac un for, care apartine procesului principa,
@@ -154,6 +158,18 @@ void consumers(int* fd)
     } 
 }
 
+// Colectare status procese copil
+void terminare_procese_copil()
+{
+    // Parcurg numarul de procese create in total si 
+    // folosesc wait sys call ca sa comunic kernelului
+    // ca parintele a colectat statusul copilului terminat,
+    // ca sa poata sa fie scos din tabela de procese definitiv
+    // wait blocheaza un proces pana se termina UN COPIL
+    for(int i = 0; i < PRODUCERS + CONSUMERS; ++i)
+        wait(NULL);
+}
+
 int main() 
 {
     // =====================================================
@@ -180,11 +196,18 @@ int main()
     // III Crearea consumatorilor
     consumers(fd);
 
+    // =====================================================
+    // IV Inchidere capete pipe
     // Inchid cele doua capete ale pipe ului, mai ales pentru fd[1]
     // este important, ca read sa recunoasca ca nu mai poate citi nimic
     // pentru ca nimic nu mai poate fi adaugat
     close(fd[0]);
     close(fd[1]);
+
+    // =====================================================
+    // V Colectare status code procese copil
+    // Colectez status copiilor pentru a evita procesele zombie
+    terminare_procese_copil();
 
     return 0;
 }
